@@ -7,7 +7,9 @@ export default async function handler(req, res) {
 
   const SHEET_ID = "1O2PK1OzXrume3-sehPLjThpWTWLfn0JhHhj3XgCMsEQ";
   const API_KEY = process.env.GOOGLE_API_KEY;
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzhy_D-CFddKOcutYKmJvi_aj2FpzRGAtu7KHICK6nrGLJipI7ke5NkqsPeiJNdJaNb/exec";
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwDDQa1WXeFOvOEoodOOac_JXDZ5HStEcOlGYWv4_SSGIexqLae5DM3Rqng8u2wWhRn/exec";
+  
+  //"https://script.google.com/macros/s/AKfycbzhy_D-CFddKOcutYKmJvi_aj2FpzRGAtu7KHICK6nrGLJipI7ke5NkqsPeiJNdJaNb/exec"
 
   // ดึงข้อมูลนักเรียนจาก Sheet
   const sheetRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Students?key=${API_KEY}`);
