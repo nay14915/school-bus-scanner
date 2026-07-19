@@ -7,19 +7,22 @@ export default async function handler(req, res) {
 
   const SHEET_ID = "1O2PK1OzXrume3-sehPLjThpWTWLfn0JhHhj3XgCMsEQ";
   const API_KEY = process.env.GOOGLE_API_KEY;
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzhy_D-CFddKOcutYKmJvi_aj2FpzRGAtu7KHICK6nrGLJipI7ke5NkqsPeiJNdJaNb/exec";
-  
-  //"https://script.google.com/macros/s/AKfycbzhy_D-CFddKOcutYKmJvi_aj2FpzRGAtu7KHICK6nrGLJipI7ke5NkqsPeiJNdJaNb/exec"
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxwxvThsQQNRjVifDwomXANHciDKYDRTOKcJS_vOzlZNCDachJXlnzEDsa8lk3OiEsz/exec";
 
-  // ดึงข้อมูลนักเรียนจาก Sheet
-  const sheetRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Students?key=${API_KEY}`);
+  // ดึงข้อมูลนักเรียนจาก Sheet (รวมคอลัมน์ D = โรงเรียน)
+  const sheetRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Students!A:D?key=${API_KEY}`);
   const sheetData = await sheetRes.json();
   const rows = sheetData.values || [];
 
   let student = null;
   for (let i = 1; i < rows.length; i++) {
     if (rows[i][0] == studentId) {
-      student = { id: rows[i][0], name: rows[i][1], class: rows[i][2] };
+      student = {
+        id: rows[i][0],
+        name: rows[i][1],
+        class: rows[i][2],
+        school: rows[i][3] || ""
+      };
       break;
     }
   }
@@ -44,14 +47,16 @@ export default async function handler(req, res) {
           .card { background: white; border-radius: 16px; padding: 30px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); max-width: 400px; margin: auto; }
           h1 { color: #2e7d32; font-size: 1.8em; }
           p { font-size: 1.2em; color: #555; }
+          .school { color: #6a1b9a; font-size: 1.05em; }
           .time { color: #1565c0; font-weight: bold; }
         </style>
       </head>
       <body>
         <div class="card">
-          <h1>✅ ขึ้นรถสำเร็จ!</h1>
+          <h1>✅ ลงทะเบียนสำเร็จ!</h1>
           <p>👤 <strong>${student.name}</strong></p>
           <p>🏫 ชั้น ${student.class}</p>
+          <p class="school">🏫 ${student.school}</p>
           <p class="time">🕐 ${now}</p>
         </div>
       </body>
