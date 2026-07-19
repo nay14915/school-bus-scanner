@@ -72,9 +72,9 @@ export default async function handler(req, res) {
 
           rowsHtml += `
             <tr class="${rowClass}">
-              <td class="col-sticky col-1">${row[0] || "-"}</td>
-              <td class="col-sticky col-2">${row[1] || "-"}</td>
-              <td class="col-sticky col-3">${row[2] || "-"}</td>
+              <td>${row[0] || "-"}</td>
+              <td class="col-sticky">${row[1] || "-"}</td>
+              <td>${row[2] || "-"}</td>
               <td>${row[3] || "-"}</td>
               <td>${row[4] || "-"}</td>
               <td>${row[5] || "-"}</td>
@@ -91,9 +91,9 @@ export default async function handler(req, res) {
         <div class="table-scroll">
           <table>
             <tr>
-              <th class="col-sticky col-1">ลำดับ</th>
-              <th class="col-sticky col-2">Student ID</th>
-              <th class="col-sticky col-3">ชื่อนักเรียน</th>
+              <th>ลำดับ</th>
+              <th class="col-sticky">Student ID</th>
+              <th>ชื่อนักเรียน</th>
               <th>ชั้น</th><th>โรงเรียน</th>
               <th>ขึ้นรถเช้า</th><th>ลงรถโรงเรียน</th><th>ขึ้นรถเย็น</th><th>ลงบ้าน</th><th>สถานะ</th>
             </tr>
@@ -117,8 +117,8 @@ export default async function handler(req, res) {
       </div>
     `).join("");
 
-    const tabs = routeKeys.map(key => `
-      <button class="tab ${key === defaultRoute ? "active" : ""}" id="tab-${key}" onclick="showRoute('${key}')">${ROUTES[key].title}</button>
+    const options = routeKeys.map(key => `
+      <option value="${key}" ${key === defaultRoute ? "selected" : ""}>${ROUTES[key].title}</option>
     `).join("");
 
     const routeNamesJson = JSON.stringify(
@@ -149,28 +149,36 @@ export default async function handler(req, res) {
             .header-box .sub-title { font-size: 0.95em; margin-top: 10px; font-weight: bold; }
             .header-box .route-line { font-size: 0.9em; margin-top: 6px; }
             .header-box .date-line { font-size: 0.78em; margin-top: 6px; opacity: 0.9; }
-            .tabs { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
-            .tab { width: 100%; padding: 12px 10px; background: white; border-radius: 10px; border: 1px solid #ddd; color: #333; font-size: 0.95em; box-shadow: 0 1px 4px rgba(0,0,0,0.08); cursor: pointer; }
-            .tab.active { background: #2e7d32; color: white; border-color: #2e7d32; }
+
+            .select-wrap { margin-bottom: 14px; }
+            .route-select {
+              width: 100%;
+              padding: 14px 12px;
+              font-size: 1em;
+              border-radius: 10px;
+              border: 1px solid #ccc;
+              background: white;
+              color: #2e7d32;
+              font-weight: bold;
+              box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+              -webkit-appearance: none;
+              appearance: none;
+            }
+
             .refresh-btn { display: block; width: 100%; margin: 0 0 16px; padding: 12px; background: #1565c0; color: white; border: none; border-radius: 10px; font-size: 1em; cursor: pointer; }
             .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
             table { border-collapse: collapse; width: 100%; min-width: 760px; }
             th, td { border: 1px solid #ddd; padding: 8px 10px; text-align: center; font-size: 0.85em; white-space: nowrap; }
             th { background: #2e7d32; color: white; position: sticky; top: 0; z-index: 3; }
 
-            /* คอลัมน์ตรึงซ้าย: ลำดับ / Student ID / ชื่อนักเรียน */
-            .col-1 { left: 0; width: 46px; min-width: 46px; }
-            .col-2 { left: 46px; width: 88px; min-width: 88px; }
-            .col-3 { left: 134px; width: 130px; min-width: 130px; white-space: normal; text-align: left; }
-            td.col-sticky {
+            /* ตรึงเฉพาะคอลัมน์ Student ID */
+            .col-sticky {
               position: sticky;
+              left: 0;
               z-index: 2;
               box-shadow: 2px 0 4px rgba(0,0,0,0.08);
             }
-            th.col-sticky {
-              position: sticky;
-              z-index: 4;
-            }
+            th.col-sticky { z-index: 4; }
             tr.odd-row td.col-sticky { background: #ffffff; }
             tr.even-row td.col-sticky { background: #f7f7f7; }
             tr.odd-row { background: #ffffff; }
@@ -187,10 +195,16 @@ export default async function handler(req, res) {
             <div class="route-line">สายรถ : <span id="routeName">${ROUTES[defaultRoute].routeName}</span></div>
             <div class="date-line">วันที่ ${thaiDateStr} อัปเดตล่าสุด : ${timeStr} น.</div>
           </div>
-          <div class="tabs">${tabs}</div>
+
+          <div class="select-wrap">
+            <select class="route-select" id="routeSelect" onchange="showRoute(this.value)">
+              ${options}
+            </select>
+          </div>
+
           <button class="refresh-btn" onclick="location.reload()">🔄 รีเฟรชตอนนี้</button>
           ${panels}
-          <p class="hint">👉 เลื่อนตารางซ้าย-ขวาเพื่อดูข้อมูลเพิ่มเติม (ชื่อนักเรียนจะตรึงอยู่ด้านซ้ายเสมอ)</p>
+          <p class="hint">👉 เลื่อนตารางซ้าย-ขวาเพื่อดูข้อมูลเพิ่มเติม (คอลัมน์ Student ID จะตรึงอยู่ด้านซ้ายเสมอ)</p>
 
           <script>
             const routeNames = ${routeNamesJson};
@@ -199,7 +213,6 @@ export default async function handler(req, res) {
             function showRoute(key) {
               routeKeys.forEach(function(k) {
                 document.getElementById('panel-' + k).style.display = (k === key) ? 'block' : 'none';
-                document.getElementById('tab-' + k).classList.toggle('active', k === key);
               });
               document.getElementById('routeName').textContent = routeNames[key];
             }
