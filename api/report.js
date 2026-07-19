@@ -23,7 +23,6 @@ export default async function handler(req, res) {
   }
 
   try {
-    // 1) ดึงรายชื่อชีททั้งหมด เพื่อจับคู่ gid -> ชื่อชีทจริง
     const metaRes = await fetch(
       `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}?key=${API_KEY}&fields=sheets.properties`
     );
@@ -35,7 +34,6 @@ export default async function handler(req, res) {
       return found ? found.properties.title : null;
     }
 
-    // 2) ดึงข้อมูลของทั้ง 3 โรงเรียนพร้อมกัน
     const routeKeys = Object.keys(ROUTES);
     const tablesHtml = {};
 
@@ -70,11 +68,13 @@ export default async function handler(req, res) {
           const name = row[2];
           if (!name || name === "-") continue;
 
+          const rowClass = ((i - headerRowIndex) % 2 === 0) ? "even-row" : "odd-row";
+
           rowsHtml += `
-            <tr>
-              <td>${row[0] || "-"}</td>
-              <td>${row[1] || "-"}</td>
-              <td>${row[2] || "-"}</td>
+            <tr class="${rowClass}">
+              <td class="col-sticky col-1">${row[0] || "-"}</td>
+              <td class="col-sticky col-2">${row[1] || "-"}</td>
+              <td class="col-sticky col-3">${row[2] || "-"}</td>
               <td>${row[3] || "-"}</td>
               <td>${row[4] || "-"}</td>
               <td>${row[5] || "-"}</td>
@@ -91,7 +91,10 @@ export default async function handler(req, res) {
         <div class="table-scroll">
           <table>
             <tr>
-              <th>ลำดับ</th><th>Student ID</th><th>ชื่อนักเรียน</th><th>ชั้น</th><th>โรงเรียน</th>
+              <th class="col-sticky col-1">ลำดับ</th>
+              <th class="col-sticky col-2">Student ID</th>
+              <th class="col-sticky col-3">ชื่อนักเรียน</th>
+              <th>ชั้น</th><th>โรงเรียน</th>
               <th>ขึ้นรถเช้า</th><th>ลงรถโรงเรียน</th><th>ขึ้นรถเย็น</th><th>ลงบ้าน</th><th>สถานะ</th>
             </tr>
             ${rowsHtml}
@@ -118,9 +121,6 @@ export default async function handler(req, res) {
       <button class="tab ${key === defaultRoute ? "active" : ""}" id="tab-${key}" onclick="showRoute('${key}')">${ROUTES[key].title}</button>
     `).join("");
 
-    const titlesJson = JSON.stringify(
-      Object.fromEntries(routeKeys.map(k => [k, ROUTES[k].title]))
-    );
     const routeNamesJson = JSON.stringify(
       Object.fromEntries(routeKeys.map(k => [k, ROUTES[k].routeName]))
     );
@@ -154,10 +154,28 @@ export default async function handler(req, res) {
             .tab.active { background: #2e7d32; color: white; border-color: #2e7d32; }
             .refresh-btn { display: block; width: 100%; margin: 0 0 16px; padding: 12px; background: #1565c0; color: white; border: none; border-radius: 10px; font-size: 1em; cursor: pointer; }
             .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-            table { border-collapse: collapse; width: 100%; min-width: 700px; }
+            table { border-collapse: collapse; width: 100%; min-width: 760px; }
             th, td { border: 1px solid #ddd; padding: 8px 10px; text-align: center; font-size: 0.85em; white-space: nowrap; }
-            th { background: #2e7d32; color: white; position: sticky; top: 0; z-index: 1; }
-            tr:nth-child(even) { background: #f7f7f7; }
+            th { background: #2e7d32; color: white; position: sticky; top: 0; z-index: 3; }
+
+            /* คอลัมน์ตรึงซ้าย: ลำดับ / Student ID / ชื่อนักเรียน */
+            .col-1 { left: 0; width: 46px; min-width: 46px; }
+            .col-2 { left: 46px; width: 88px; min-width: 88px; }
+            .col-3 { left: 134px; width: 130px; min-width: 130px; white-space: normal; text-align: left; }
+            td.col-sticky {
+              position: sticky;
+              z-index: 2;
+              box-shadow: 2px 0 4px rgba(0,0,0,0.08);
+            }
+            th.col-sticky {
+              position: sticky;
+              z-index: 4;
+            }
+            tr.odd-row td.col-sticky { background: #ffffff; }
+            tr.even-row td.col-sticky { background: #f7f7f7; }
+            tr.odd-row { background: #ffffff; }
+            tr.even-row { background: #f7f7f7; }
+
             .hint { text-align: center; font-size: 0.75em; color: #999; margin: 6px 0 0; }
           </style>
         </head>
@@ -172,7 +190,7 @@ export default async function handler(req, res) {
           <div class="tabs">${tabs}</div>
           <button class="refresh-btn" onclick="location.reload()">🔄 รีเฟรชตอนนี้</button>
           ${panels}
-          <p class="hint">👉 เลื่อนตารางซ้าย-ขวาเพื่อดูข้อมูลเพิ่มเติม</p>
+          <p class="hint">👉 เลื่อนตารางซ้าย-ขวาเพื่อดูข้อมูลเพิ่มเติม (ชื่อนักเรียนจะตรึงอยู่ด้านซ้ายเสมอ)</p>
 
           <script>
             const routeNames = ${routeNamesJson};
