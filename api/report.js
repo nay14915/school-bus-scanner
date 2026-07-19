@@ -3,12 +3,24 @@ export default async function handler(req, res) {
   const API_KEY = process.env.GOOGLE_API_KEY;
 
   const ROUTES = {
-    chonburi: { gid: 1129444107, title: "รายงานปัจจุบัน - ชลบุรี สุขบท" },
-    spare: { gid: 1756784613, title: "รายงานปัจจุบัน - Spare" },
-    chonyanukul: { gid: 168697584, title: "รายงานปัจจุบัน - ชลกันยานุกูล (ชลหญิง)" }
+    chonburi: { gid: 1129444107, title: "รายงานปัจจุบัน - ชลบุรี สุขบท", routeName: "ชลบุรี สุขบท" },
+    spare: { gid: 1756784613, title: "รายงานปัจจุบัน - Spare", routeName: "Spare" },
+    chonyanukul: { gid: 168697584, title: "รายงานปัจจุบัน - ชลกันยานุกูล (ชลหญิง)", routeName: "ชลกันยานุกูล (ชลหญิง)" }
   };
 
   const defaultRoute = req.query.route && ROUTES[req.query.route] ? req.query.route : "chonburi";
+
+  const THAI_MONTHS = [
+    "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
+    "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
+  ];
+
+  function formatThaiDate(date) {
+    const day = date.getDate();
+    const month = THAI_MONTHS[date.getMonth()];
+    const year = date.getFullYear();
+    return `${day} ${month} ${year}`;
+  }
 
   try {
     // 1) ดึงรายชื่อชีททั้งหมด เพื่อจับคู่ gid -> ชื่อชีทจริง
@@ -88,7 +100,13 @@ export default async function handler(req, res) {
       `;
     }
 
-    const now = new Date().toLocaleString("th-TH", { timeZone: "Asia/Bangkok" });
+    const nowDate = new Date();
+    const thaiDateStr = formatThaiDate(
+      new Date(nowDate.toLocaleString("en-US", { timeZone: "Asia/Bangkok" }))
+    );
+    const timeStr = nowDate.toLocaleTimeString("th-TH", {
+      timeZone: "Asia/Bangkok", hour: "2-digit", minute: "2-digit"
+    });
 
     const panels = routeKeys.map(key => `
       <div id="panel-${key}" class="panel" style="display:${key === defaultRoute ? "block" : "none"};">
@@ -103,6 +121,9 @@ export default async function handler(req, res) {
     const titlesJson = JSON.stringify(
       Object.fromEntries(routeKeys.map(k => [k, ROUTES[k].title]))
     );
+    const routeNamesJson = JSON.stringify(
+      Object.fromEntries(routeKeys.map(k => [k, ROUTES[k].routeName]))
+    );
     const routeKeysJson = JSON.stringify(routeKeys);
 
     const html = `
@@ -114,8 +135,20 @@ export default async function handler(req, res) {
           <style>
             * { box-sizing: border-box; }
             body { font-family: sans-serif; background: #f0f9f0; margin: 0; padding: 12px; }
-            h1 { color: #2e7d32; text-align: center; font-size: 1.25em; margin: 8px 0; }
-            .updated { text-align: center; color: #888; margin-bottom: 12px; font-size: 0.78em; }
+            .header-box {
+              background: linear-gradient(135deg, #2e7d32, #1b5e20);
+              color: white;
+              border-radius: 14px;
+              padding: 18px 16px;
+              text-align: center;
+              margin-bottom: 16px;
+              box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+            }
+            .header-box h1 { margin: 0; font-size: 1.15em; }
+            .header-box .en-title { font-size: 0.75em; opacity: 0.85; margin-top: 2px; }
+            .header-box .sub-title { font-size: 0.95em; margin-top: 10px; font-weight: bold; }
+            .header-box .route-line { font-size: 0.9em; margin-top: 6px; }
+            .header-box .date-line { font-size: 0.78em; margin-top: 6px; opacity: 0.9; }
             .tabs { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
             .tab { width: 100%; padding: 12px 10px; background: white; border-radius: 10px; border: 1px solid #ddd; color: #333; font-size: 0.95em; box-shadow: 0 1px 4px rgba(0,0,0,0.08); cursor: pointer; }
             .tab.active { background: #2e7d32; color: white; border-color: #2e7d32; }
@@ -129,15 +162,20 @@ export default async function handler(req, res) {
           </style>
         </head>
         <body>
-          <h1 id="pageTitle">${ROUTES[defaultRoute].title}</h1>
-          <div class="updated">อัปเดตล่าสุด: ${now} (รีเฟรชอัตโนมัติทุก 2.5 นาที)</div>
+          <div class="header-box">
+            <h1>ระบบติดตามรถรับ-ส่งนักเรียน</h1>
+            <div class="en-title">School Bus Monitoring System</div>
+            <div class="sub-title">รายงานการขึ้น-ลงรถนักเรียน</div>
+            <div class="route-line">สายรถ : <span id="routeName">${ROUTES[defaultRoute].routeName}</span></div>
+            <div class="date-line">วันที่ ${thaiDateStr} อัปเดตล่าสุด : ${timeStr} น.</div>
+          </div>
           <div class="tabs">${tabs}</div>
           <button class="refresh-btn" onclick="location.reload()">🔄 รีเฟรชตอนนี้</button>
           ${panels}
           <p class="hint">👉 เลื่อนตารางซ้าย-ขวาเพื่อดูข้อมูลเพิ่มเติม</p>
 
           <script>
-            const titles = ${titlesJson};
+            const routeNames = ${routeNamesJson};
             const routeKeys = ${routeKeysJson};
 
             function showRoute(key) {
@@ -145,7 +183,7 @@ export default async function handler(req, res) {
                 document.getElementById('panel-' + k).style.display = (k === key) ? 'block' : 'none';
                 document.getElementById('tab-' + k).classList.toggle('active', k === key);
               });
-              document.getElementById('pageTitle').textContent = titles[key];
+              document.getElementById('routeName').textContent = routeNames[key];
             }
           </script>
         </body>
