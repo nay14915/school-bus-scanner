@@ -29,7 +29,12 @@ export default async function handler(req, res) {
   let student = null;
   for (let i = 1; i < rows.length; i++) {
     if (rows[i][0] == studentId) {
-      student = { id: rows[i][0], name: rows[i][1], class: rows[i][2] };
+      student = {
+        id: rows[i][0],
+        name: rows[i][1],
+        class: rows[i][2],
+        school: rows[i][3] || ''
+      };
       break;
     }
   }
@@ -38,14 +43,18 @@ export default async function handler(req, res) {
     return res.status(404).send(`<h2>❌ ไม่พบนักเรียน ID: ${studentId}</h2>`);
   }
 
+  // แยก Date และ Time
+  const now = new Date();
+  const nowDate = now.toLocaleDateString("th-TH", { timeZone: "Asia/Bangkok", day: "2-digit", month: "2-digit", year: "numeric" });
+  const nowTime = now.toLocaleTimeString("th-TH", { timeZone: "Asia/Bangkok", hour: "2-digit", minute: "2-digit", second: "2-digit" });
+
   // บันทึกลง Attendance
-  const now = new Date().toLocaleString("th-TH", { timeZone: "Asia/Bangkok" });
   await sheets.spreadsheets.values.append({
     spreadsheetId: SHEET_ID,
     range: 'Attendance',
     valueInputOption: 'USER_ENTERED',
     requestBody: {
-      values: [[now, student.id, student.name, student.class]],
+      values: [[nowDate, nowTime, student.id, student.name, student.class, student.school]],
     },
   });
 
@@ -68,7 +77,8 @@ export default async function handler(req, res) {
           <h1>✅ ขึ้นรถสำเร็จ!</h1>
           <p>👤 <strong>${student.name}</strong></p>
           <p>🏫 ชั้น ${student.class}</p>
-          <p class="time">🕐 ${now}</p>
+          <p>🏢 ${student.school}</p>
+          <p class="time">🕐 ${nowDate} ${nowTime}</p>
         </div>
       </body>
     </html>
