@@ -8,6 +8,7 @@ export default async function handler(req, res) {
     return res.status(400).send("ไม่พบ ID นักเรียน");
   }
 
+  
   const auth = new GoogleAuth({
     credentials: {
       client_email: process.env.GOOGLE_CLIENT_EMAIL,
