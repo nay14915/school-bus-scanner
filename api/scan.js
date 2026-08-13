@@ -1,3 +1,6 @@
+import { GoogleAuth } from 'google-auth-library';
+import { google } from 'googleapis';
+
 export default async function handler(req, res) {
   const studentId = req.query.id;
 
@@ -5,24 +8,28 @@ export default async function handler(req, res) {
     return res.status(400).send("ไม่พบ ID นักเรียน");
   }
 
+  const auth = new GoogleAuth({
+    credentials: {
+      client_email: process.env.GOOGLE_CLIENT_EMAIL,
+      private_key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+    },
+    scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+  });
+
+  const sheets = google.sheets({ version: 'v4', auth });
   const SHEET_ID = "1O2PK1OzXrume3-sehPLjThpWTWLfn0JhHhj3XgCMsEQ";
-  const API_KEY = process.env.GOOGLE_API_KEY;
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxwxvThsQQNRjVifDwomXANHciDKYDRTOKcJS_vOzlZNCDachJXlnzEDsa8lk3OiEsz/exec";
 
-  // ดึงข้อมูลนักเรียนจาก Sheet (รวมคอลัมน์ D = โรงเรียน)
-  const sheetRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Students!A:D?key=${API_KEY}`);
-  const sheetData = await sheetRes.json();
-  const rows = sheetData.values || [];
+  // ดึงข้อมูลนักเรียน
+  const studentRes = await sheets.spreadsheets.values.get({
+    spreadsheetId: SHEET_ID,
+    range: 'Students',
+  });
 
+  const rows = studentRes.data.values || [];
   let student = null;
   for (let i = 1; i < rows.length; i++) {
     if (rows[i][0] == studentId) {
-      student = {
-        id: rows[i][0],
-        name: rows[i][1],
-        class: rows[i][2],
-        school: rows[i][3] || ""
-      };
+      student = { id: rows[i][0], name: rows[i][1], class: rows[i][2] };
       break;
     }
   }
@@ -31,10 +38,16 @@ export default async function handler(req, res) {
     return res.status(404).send(`<h2>❌ ไม่พบนักเรียน ID: ${studentId}</h2>`);
   }
 
-  // บันทึกลง Sheet ผ่าน Apps Script (background)
-  fetch(`${APPS_SCRIPT_URL}?id=${studentId}`).catch(() => {});
-
+  // บันทึกลง Attendance
   const now = new Date().toLocaleString("th-TH", { timeZone: "Asia/Bangkok" });
+  await sheets.spreadsheets.values.append({
+    spreadsheetId: SHEET_ID,
+    range: 'Attendance',
+    valueInputOption: 'USER_ENTERED',
+    requestBody: {
+      values: [[now, student.id, student.name, student.class]],
+    },
+  });
 
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   return res.status(200).send(`
@@ -47,16 +60,14 @@ export default async function handler(req, res) {
           .card { background: white; border-radius: 16px; padding: 30px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); max-width: 400px; margin: auto; }
           h1 { color: #2e7d32; font-size: 1.8em; }
           p { font-size: 1.2em; color: #555; }
-          .school { color: #6a1b9a; font-size: 1.05em; }
           .time { color: #1565c0; font-weight: bold; }
         </style>
       </head>
       <body>
         <div class="card">
-          <h1>✅ ลงทะเบียนสำเร็จ!</h1>
+          <h1>✅ ขึ้นรถสำเร็จ!</h1>
           <p>👤 <strong>${student.name}</strong></p>
           <p>🏫 ชั้น ${student.class}</p>
-          <p class="school">🏫 ${student.school}</p>
           <p class="time">🕐 ${now}</p>
         </div>
       </body>
