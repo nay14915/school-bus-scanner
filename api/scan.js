@@ -8,7 +8,6 @@ export default async function handler(req, res) {
     return res.status(400).send("ไม่พบ ID นักเรียน");
   }
 
-  
   const auth = new GoogleAuth({
     credentials: {
       client_email: process.env.GOOGLE_CLIENT_EMAIL,
@@ -20,7 +19,6 @@ export default async function handler(req, res) {
   const sheets = google.sheets({ version: 'v4', auth });
   const SHEET_ID = "1O2PK1OzXrume3-sehPLjThpWTWLfn0JhHhj3XgCMsEQ";
 
-  // ดึงข้อมูลนักเรียน
   const studentRes = await sheets.spreadsheets.values.get({
     spreadsheetId: SHEET_ID,
     range: 'Students',
@@ -44,12 +42,19 @@ export default async function handler(req, res) {
     return res.status(404).send(`<h2>❌ ไม่พบนักเรียน ID: ${studentId}</h2>`);
   }
 
-  // แยก Date และ Time
+  // แยก Date และ Time ให้ตรงกับ format เดิม dd/MM/yyyy และ HH:mm:ss
   const now = new Date();
-  const nowDate = now.toLocaleDateString("th-TH", { timeZone: "Asia/Bangkok", day: "2-digit", month: "2-digit", year: "numeric" });
-  const nowTime = now.toLocaleTimeString("th-TH", { timeZone: "Asia/Bangkok", hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  const bkk = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Bangkok" }));
+  const dd = String(bkk.getDate()).padStart(2, '0');
+  const mm = String(bkk.getMonth() + 1).padStart(2, '0');
+  const yyyy = bkk.getFullYear();
+  const hh = String(bkk.getHours()).padStart(2, '0');
+  const min = String(bkk.getMinutes()).padStart(2, '0');
+  const ss = String(bkk.getSeconds()).padStart(2, '0');
 
-  // บันทึกลง Attendance
+  const nowDate = `${dd}/${mm}/${yyyy}`;
+  const nowTime = `${hh}:${min}:${ss}`;
+
   await sheets.spreadsheets.values.append({
     spreadsheetId: SHEET_ID,
     range: 'Attendance',
