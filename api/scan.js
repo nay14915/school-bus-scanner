@@ -80,7 +80,7 @@ export default async function handler(req, res) {
       </head>
       <body>
         <div class="card">
-          <h1>✅ ลงทะเบียน<br>สำเร็จ</h1>
+          <h1>✅ ลงทะเบียนสำเร็จ</h1>
           <p>👤 <strong>${student.name}</strong></p>
           <p>🏫 ชั้น ${student.class}</p>
           <p>🏢 ${student.school}</p>
